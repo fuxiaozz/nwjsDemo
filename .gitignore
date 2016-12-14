@@ -1,0 +1,9 @@
+/*
+!.gitignore
+!css/
+!js/
+!build.js
+!index.html
+!package.json
+!README.md
+# 配置为 忽略全部文件, 只有!后的不忽略
