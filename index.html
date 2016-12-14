@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-bind="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="css/iview/iview.css">
+    <link rel="stylesheet" href="js/My97DatePicker/skin/WdatePicker.css">
+
+
+    <script src="js/vue.js"></script>
+    <!-- 引入组件库 -->
+    <script src="js/iview.min.js"></script>
+    <script src="js/jquery-3.1.1.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/vue-resource.min.js"></script>
+    <script src="js/My97DatePicker/WdatePicker.js"></script>
+</head>
+<body>
+<div>
+</div>
+<div id="app">
+    <br>
+    <br>
+    <br>
+    <Row type="flex" justify="center">
+        <i-col span="6">
+            暂时只支持一号线
+        </i-col>
+    </Row>
+    <br>
+    <Row type="flex" justify="center">
+        <i-col span="10">
+            <i-input :value.sync="tel" placeholder="电话" style="min-width:150px;">
+                <span slot="prepend">电话: </span>
+            </i-input>
+        </i-col>
+    </Row>
+    <br>
+    <Row type="flex" justify="center">
+        <i-col span="10">
+            <i-input :value.sync="pwd" placeholder="密码" style="min-width:150px;">
+                <span slot="prepend">密码: </span>
+            </i-input>
+        </i-col>
+    </Row>
+    <br>
+    <Row type="flex" justify="center">
+        <i-col span="10">
+            <i-input :value.sync="calendar" placeholder="日期" style="min-width:150px;" v-on:click="clander">
+                <span slot="prepend">乘车日期: </span>
+            </i-input>
+        </i-col>
+    </Row>
+    <br>
+    <Row type="flex" justify="center">
+        <i-col span="10">
+            <span>乘车地点: </span>
+            <Radio-group :model.sync="area">
+                <Radio value="x">
+                    <span>西安</span>
+                </Radio>
+                <Radio value="g">
+                    <span>高陵</span>
+                </Radio>
+            </Radio-group>
+        </i-col>
+    </Row>
+    <br>
+    <Row type="flex" justify="center">
+        <i-col span="8">
+            <div style="text-align:center;">
+                <i-button @click="beginBy" type="primary" id="startBtn">开始购票</i-button>
+                &nbsp;
+                <i-button @click="clean">停止购票</i-button>
+            </div>
+        </i-col>
+    </Row>
+    <br>
+    <div id="show"></div>
+
+
+</div>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            continueFlag: true,
+            visible: false,
+            pwd: 'bingya86',
+            tel: '13991169355',
+            area: '',
+            calendar: '2016-12-04 17:05',
+            userInfo: {},
+            busId: '',
+            lineId: '',
+            xLineId: 'c7345c306f9e45b5ad23af98b1123c42',
+            gLineId: 'b63f66e306e34c888707c820b8baf027',
+            cookie: document.cookie,
+            day: '',
+            time: '',
+            orderId: '',
+            orderNum: ''
+        },
+        methods: {
+            beginBy: function () {
+                if (!this.pwd) {
+                    this.$Notice.open({
+                        top: 50,
+                        duration: 3,
+                        title: '密码',
+                        desc: '密码不能为空'
+                    });
+                    return;
+                }
+                if (!this.tel) {
+                    this.$Notice.open({
+                        top: 50,
+                        duration: 3,
+                        title: '电话',
+                        desc: '就是登录的手机号, 我不知道登录账号哦~~~'
+                    });
+                    return;
+                }
+
+                if (!this.pwd) {
+                    this.$Notice.open({
+                        top: 50,
+                        duration: 3,
+                        title: '密码',
+                        desc: '登录密码多少...偶不知道...'
+                    });
+                    return;
+                }
+
+                if (!this.calendar) {
+                    this.$Notice.open({
+                        top: 50,
+                        duration: 3,
+                        title: '日期',
+                        desc: '请选择乘车时间, 注意时间App班车时间相同哦~~'
+                    });
+                    return;
+                }
+
+                if (!this.area) {
+                    this.$Notice.open({
+                        top: 50,
+                        duration: 3,
+                        title: '地点',
+                        desc: '选择一个乘车地点, 别选错了哦~~'
+                    });
+                    return;
+                }
+                orderFlag = true;
+                document.getElementById("startBtn").disabled = true;
+                if (!this.userInfo['id']) {
+                    login.call(this);
+                } else {
+                    getUserInfo.call(this);
+                    searchLine.call(this);
+                }
+            },
+            clean: function () {
+                window.clearInterval(orderTime);
+                document.getElementById("startBtn").disabled = false;
+                document.getElementById("show").innerHTML = "停止成功";
+                orderFlag = true;
+            },
+            clander: function () {
+                WdatePicker({doubleCalendar: true, dateFmt: 'yyyy-MM-dd HH:mm'});
+            }
+        }
+    })
+
+    /**
+     * 登录
+     */
+    function login() {
+        Vue.http({
+            method: 'POST',
+            url: api.login,
+            emulateJSON: true,
+            headers: {},
+            body: [
+                {"name": "username", "value": this.tel},
+                {"name": "password", "value": this.pwd},
+                {"name": "type", "value": "0"},
+                {"name": "mobileLogin", "value": "true"},
+                {"name": "imsi", "value": "352004070044200"}
+            ]
+        }).then((response) => {
+            console.log(response);
+            console.log(document.cookie);
+            if (response.body["id"]) {
+                this.userInfo = response.body;
+                orderInfo.userId = response.body["id"];
+                getUserInfo.call(this);
+                searchLine.call(this);
+            } else {
+                alert("登录出错");
+                loginOut.call(this);
+            }
+        }, (response) => {
+            alert("登录出错了~~");
+            loginOut.call(this);
+        });
+    }
+
+    /**
+     * 获取用户信息
+     */
+    function getUserInfo() {
+        Vue.http({
+            method: 'POST',
+            url: api.userInfo,
+            emulateJSON: true,
+            headers: {},
+            body: [
+                {name: 'userid', value: this.userInfo.id},
+            ]
+        }).then((response) => {
+            console.log(response);
+        }, (response) => {
+            console.log(response);
+            alert("请求失败");
+        });
+    }
+
+    /**
+     * 查询线路
+     */
+    var orderTime = null;
+    var orderFun = null;
+    var orderInfo = {};
+    var orderFlag = true;
+    function searchLine() {
+        let calendarArray = this.calendar.split(" ");
+        let day = calendarArray[0];
+        let time = calendarArray[1];
+        Vue.http({
+            method: 'POST',
+            url: this.area === 'x' ? api.xLine : api.gLine,
+            emulateJSON: true,
+            headers: {},
+            body: [
+                {name: 'Month', value: day},
+                {name: 'LINEID', value: this.area === 'x' ? this.xLineId : this.gLineId},
+            ]
+        }).then((response) => {
+            let json = response.body;
+            if (json["shiftInfoList"]) {
+                json["shiftInfoList"].forEach(function (lineInfo) {
+                    if (lineInfo['shiftDay'] === day && lineInfo['shiftTime'] === time) {
+                        orderInfo.busId = lineInfo['id'];
+                        orderInfo.lineId = lineInfo['lineId'];
+                        orderInfo.day = day;
+                        orderInfo.time = time;
+                        orderFun = order.bind(this);
+                        orderTime = window.setInterval(orderFun, 5000);
+                    }
+                });
+            } else {
+                alert("查询路线失败, 联系老公处理.");
+            }
+        }, (response) => {
+            console.log(response);
+            alert("查询路线失败, 联系老公处理.");
+        });
+    }
+
+    /**
+     * 下单: 一般用来循环购票
+     */
+    function order() {
+        console.log("循环购票..." + new Date());
+        if (!orderFlag) {
+            return;
+        }
+        Vue.http({
+            method: 'POST',
+            url: api.order,
+            emulateJSON: true,
+            headers: {},
+            body: [
+                {name: 'shift_time', value: orderInfo.time},
+                {name: 'PAYINFO', value: orderInfo.day},
+                {name: 'userState', value: "0"},
+                {name: 'INTEGRAL', value: "0"},
+                {name: 'checkVersion', value: "right_version_1.6"},
+                {name: 'SHIFTID', value: orderInfo.busId},
+                {name: 'line_id', value: orderInfo.lineId},
+                {name: 'USERID', value: orderInfo.userId}
+            ]
+        }).then((response) => {
+            if(response.body.success == "0") {
+                if (response.body['ORDERID'] && response.body['ORDERNUM']) {
+                    orderFlag = false;
+                    orderInfo.orderId = response.body['ORDERID'];
+                    orderInfo.orderNum = response.body['ORDERNUM'];
+                    pay.call(this);
+                }
+                window.clearInterval(orderTime);
+            }
+        }, (response) => {
+            console.log(response);
+            alert("order 下单失败, 联系老公处理.");
+        });
+    }
+
+    /**
+     * 订单支付
+     */
+    function pay() {
+        console.log("支付..." + new Date());
+        Vue.http({
+            method: 'POST',
+            url: api.pay,
+            emulateJSON: true,
+            headers: {},
+            body: [
+                {name: 'ORDERID', value: orderInfo.orderId},
+                {name: 'ORDERNUM', value: orderInfo.orderNum},
+                {name: 'PAYPLAT', value: "9"},
+                {name: 'USERID', value: orderInfo.userId},
+                {name: 'exchargeNum', value: "0"},
+                {name: 'PAYID', value: "MKzBYtaC0FPizt4RIVJ0eJjM1DOr5KoN"},
+                {name: 'PAYNUM', value: "0"}
+            ]
+        }).then((response) => {
+            console.log(response.body)
+            document.getElementById("startBtn").disabled = false;
+            document.getElementById("show").innerHTML = document.getElementById("show").innerHTML + "<br>";
+            document.getElementById("show").innerHTML = new Date() + " , 购票成功, 检查APP";
+        }, (response) => {
+            console.log(response);
+            alert("支付失败, 联系老公处理.");
+        });
+
+
+    }
+
+    /**
+     * 登出
+     */
+    function loginOut() {
+        Vue.http.get(api.loginOut).then((response) => {
+            console.log(response);
+        }, (response) => {
+            console.log(response);
+        });
+    }
+</script>
+</body>
+</html>
